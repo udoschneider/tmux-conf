@@ -178,6 +178,29 @@ ln -s ~/.tmux/claude-tool-label.sh ~/.claude/hooks/tmux_status.sh
 Pointing `settings.json` straight at `~/.tmux/claude-tool-label.sh` works just as well. The
 script needs `jq`, no-ops outside tmux, and skipping it entirely just means no tool label.
 
+## Regenerating the screenshot
+
+`docs/screenshot.sh` rebuilds `docs/screenshot.png` end to end: `docs/demo-setup.sh` creates a
+throwaway project, a linked worktree and the state files in a scratch directory and starts a
+tmux session for them on its **own server socket** (`-L tmuxdemo`), so it never touches the
+sessions you are working in; `docs/demo.tape` records that with [VHS](https://github.com/charmbracelet/vhs);
+`docs/window-chrome.py` adds the window frame and shadow. None of this is needed to *use* the
+config — only to regenerate the picture.
+
+| Needs                     |                                                                |
+| ------------------------- | -------------------------------------------------------------- |
+| `vhs`, `ttyd`             | Both ship static binaries — `~/.local/bin`, no root needed      |
+| `ffmpeg`, Chrome/Chromium | VHS drives a headless browser and encodes through ffmpeg        |
+| `uv`                      | `window-chrome.py` pulls Pillow in on demand via its shebang    |
+| a colour emoji font       | e.g. Noto Color Emoji, or the glyphs render as boxes            |
+
+The repo has to be checked out at `~/.tmux`, since `tmux.conf` refers to the scripts by that
+path. Two VHS quirks are worth knowing before editing `demo.tape`, because both fail
+*silently* with exit status 0: its lexer rejects some perfectly ordinary paths (`frames/`
+parses, `_frames/` does not — `vhs validate demo.tape` is the only way to see that), and frame
+output only materialises under `/tmp`, which is why `screenshot.sh` records in a `mktemp -d`
+rather than in the repo.
+
 ## How it works
 
 Palettes are published as six `@thm_*` user options per session. Every **format** option
