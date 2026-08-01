@@ -29,12 +29,13 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 ## Contents
 
-| File                | Role                                                             |
-| ------------------- | ---------------------------------------------------------------- |
-| `tmux.conf`         | The configuration proper — roles, formats, hooks                 |
-| `project-theme.sh`  | Resolves a session's palette by walking up for `.tmux-theme`     |
-| `pane-status.sh`    | Resolves the pane-border chunk — worktree marker, branch, glyph  |
-| `.gitignore`        | Excludes TPM's `plugins/`                                        |
+| File                   | Role                                                             |
+| ---------------------- | ---------------------------------------------------------------- |
+| `tmux.conf`            | The configuration proper — roles, formats, hooks                 |
+| `project-theme.sh`     | Resolves a session's palette by walking up for `.tmux-theme`     |
+| `pane-status.sh`       | Resolves the pane-border chunk — worktree marker, branch, glyph  |
+| `claude-tool-label.sh` | Optional: shows the tool Claude Code is running (see below)      |
+| `.gitignore`           | Excludes TPM's `plugins/`                                        |
 
 ## How a project sets its colours
 
@@ -116,6 +117,33 @@ trap 'rm -f "$state/$TMUX_PANE.gate"' EXIT INT TERM HUP
 
 Guard on `$TMUX_PANE` being set if the tool also runs outside tmux; everything here is
 best-effort by design, and a missing or malformed file renders as silence.
+
+## Optional: the Claude Code tool label
+
+`claude-tool-label.sh` writes the tool Claude Code is currently running into the pane-local
+user option `@pane_cmd`, which `tmux.conf` renders at the end of the border. This is the one
+indicator that must be **pushed** rather than polled — "the tool running right now" has no
+representation on disk for a reader to find.
+
+It is wired as a Claude Code hook. Because it is the *only* writer of `@pane_cmd`, it needs
+no coordination with anything else: it sets the slot on `PreToolUse` and clears it on `Stop`.
+
+```jsonc
+// ~/.claude/settings.json
+"hooks": {
+  "PreToolUse": [{ "matcher": "*", "hooks": [
+    { "type": "command", "command": "$HOME/.claude/hooks/tmux_status.sh cmd" }
+  ]}],
+  "Stop": [{ "hooks": [
+    { "type": "command", "command": "$HOME/.claude/hooks/tmux_status.sh idle" }
+  ]}]
+}
+```
+
+On this host `~/.claude/hooks/tmux_status.sh` is a symlink to `claude-tool-label.sh` here, so
+the hook path in `settings.json` stays stable while the script itself is version-controlled.
+Either symlink it the same way or point `settings.json` directly at this file. It needs `jq`,
+no-ops outside tmux, and skipping it entirely just means no tool label.
 
 ## How it works
 
