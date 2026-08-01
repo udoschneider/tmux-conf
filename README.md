@@ -10,8 +10,8 @@ how any of it is rendered.
 ## Install
 
 ```sh
-git clone <this-repo> ~/.tmux
-printf 'source-file ~/.tmux/tmux.conf\n' > ~/.tmux.conf
+git clone git@github.com:udoschneider/tmux-conf.git ~/.tmux
+echo 'source-file ~/.tmux/tmux.conf' > ~/.tmux.conf
 tmux source-file ~/.tmux.conf     # or just start tmux
 ```
 
