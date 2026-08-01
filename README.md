@@ -29,11 +29,12 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 ## Contents
 
-| File                | Role                                                          |
-| ------------------- | ------------------------------------------------------------- |
-| `tmux.conf`         | The configuration proper — roles, formats, hooks              |
-| `project-theme.sh`  | Resolves a session's palette by walking up for `.tmux-theme`  |
-| `.gitignore`        | Excludes TPM's `plugins/`                                     |
+| File                | Role                                                             |
+| ------------------- | ---------------------------------------------------------------- |
+| `tmux.conf`         | The configuration proper — roles, formats, hooks                 |
+| `project-theme.sh`  | Resolves a session's palette by walking up for `.tmux-theme`     |
+| `pane-status.sh`    | Resolves the pane-border chunk — worktree marker, branch, glyph  |
+| `.gitignore`        | Excludes TPM's `plugins/`                                        |
 
 ## How a project sets its colours
 
@@ -74,6 +75,47 @@ irrelevant: a session called `21` sitting in the project directory themes correc
 `accent` is the current-window *background*, painted with `bar` as its foreground. So a
 light `bar` needs a **dark** `accent` — and a dark `badge` too, since the status-left and
 status-right badges hardcode white text.
+
+## How a project shows status in the pane border
+
+A project can surface transient state — "this pane holds the build lock", "a deploy is
+running here" — by dropping files in its git **common** dir, so every worktree shares one
+namespace. It never calls tmux, and this repo never learns the project's name.
+
+```
+$(git rev-parse --git-common-dir)/tmux-state/
+  <pane-id>.gate    # "wait <pid>"  -> ⏳     "hold <pid>"  -> 🔒
+  <pane-id>.land    # "<pid>"       -> ⬇️
+```
+
+`<pane-id>` is `$TMUX_PANE`, which is an ordinary environment variable — reading it is not a
+tmux call, so a project stays entirely tmux-ignorant. `pane-status.sh` polls these files once
+per `status-interval` and renders at most one glyph, `gate` before `land`.
+
+Two properties are worth understanding, because they are the reason for the shape:
+
+**One file per concern, never a shared one.** Each writer creates and unlinks only its own
+file. It never has to know another writer exists, never has to save-and-restore a value it
+found, and can never stomp someone else's. Precedence lives in exactly one place — the
+resolver — instead of being negotiated pairwise between writers. Concretely: if a long
+deploy publishes `.land` and then pauses to take the build lock, the lock's `.gate` file
+simply outranks it; when the lock releases and `.gate` is unlinked, the `⬇️` reappears on its
+own. No restore logic exists anywhere.
+
+**The pid is a liveness proof.** A file whose pid no longer exists is ignored and swept on
+the next repaint, so a `kill -9` self-heals rather than stranding a glyph until some later
+cleanup pass. Writers should still unlink on exit — the pid is the backstop, not the plan.
+
+A minimal writer is three lines:
+
+```sh
+state="$(git rev-parse --git-common-dir)/tmux-state"
+mkdir -p "$state" && printf 'hold %s\n' "$$" > "$state/$TMUX_PANE.gate"
+trap 'rm -f "$state/$TMUX_PANE.gate"' EXIT INT TERM HUP
+```
+
+Guard on `$TMUX_PANE` being set if the tool also runs outside tmux; everything here is
+best-effort by design, and a missing or malformed file renders as silence.
 
 ## How it works
 
