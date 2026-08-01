@@ -36,6 +36,7 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 | `pane-status.sh`       | Resolves the pane-border chunk — worktree marker, branch, glyph  |
 | `claude-tool-label.sh` | Optional: shows the tool Claude Code is running (see below)      |
 | `.gitignore`           | Excludes TPM's `plugins/`                                        |
+| `LICENSE`              | MIT — the terms this repo is published under                     |
 
 ## How a project sets its colours
 
