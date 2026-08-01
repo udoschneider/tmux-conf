@@ -3,6 +3,16 @@
 Version-controlled tmux setup: a per-project colour scheme driven by files that live
 **in each project**, plus the pane-border status line.
 
+![A tmux session tinted by its project's palette. Each pane border carries its index and git
+branch; one pane is in a linked worktree and holds the build lock, another is landing a
+deploy, a third is waiting for the lock. The active pane's border also shows the tool Claude
+Code is running.](docs/screenshot.png)
+
+<sub>Everything at once, which no real session obliges you by doing: pane 1 sits in a linked
+worktree (`🔀`) holding the build lock (`🔒`), pane 2 is landing a deploy (`⬇️`), pane 3 is
+waiting for the lock (`⏳`), and pane 0 shows Claude Code's current tool. Regenerate with
+`docs/screenshot.sh`.</sub>
+
 ## What it does
 
 - **Per-project colours** — the status bar, window list and pane borders tint per project, so
@@ -51,6 +61,7 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 | `project-theme.sh`     | Resolves a session's palette by walking up for `.tmux-theme`     |
 | `pane-status.sh`       | Resolves the pane-border chunk — worktree marker, branch, glyph  |
 | `claude-tool-label.sh` | Optional: shows the tool Claude Code is running (see below)      |
+| `docs/`                | The screenshot above, and the scripts that regenerate it         |
 | `.gitignore`           | Excludes TPM's `plugins/`                                        |
 | `LICENSE`              | MIT — the terms this repo is published under                     |
 
@@ -157,10 +168,15 @@ no coordination with anything else: it sets the slot on `PreToolUse` and clears 
 }
 ```
 
-On this host `~/.claude/hooks/tmux_status.sh` is a symlink to `claude-tool-label.sh` here, so
-the hook path in `settings.json` stays stable while the script itself is version-controlled.
-Either symlink it the same way or point `settings.json` directly at this file. It needs `jq`,
-no-ops outside tmux, and skipping it entirely just means no tool label.
+The hook path above is a symlink into this repo, which keeps `settings.json` stable while the
+script stays version-controlled:
+
+```sh
+ln -s ~/.tmux/claude-tool-label.sh ~/.claude/hooks/tmux_status.sh
+```
+
+Pointing `settings.json` straight at `~/.tmux/claude-tool-label.sh` works just as well. The
+script needs `jq`, no-ops outside tmux, and skipping it entirely just means no tool label.
 
 ## How it works
 
