@@ -10,8 +10,8 @@ Code is running.](docs/screenshot.png)
 
 <sub>Everything at once, which no real session obliges you by doing: pane 1 sits in a linked
 worktree (`🔀`) holding the build lock (`🔒`), pane 2 is landing a deploy (`⬇️`), pane 3 is
-waiting for the lock (`⏳`), and pane 0 shows Claude Code's current tool. Regenerate with
-`docs/screenshot.sh`.</sub>
+waiting for the lock (`⏳`), and pane 0 shows Claude Code's current tool. It is generated
+rather than captured — see [docs/](docs/README.md).</sub>
 
 ## What it does
 
@@ -61,7 +61,7 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 | `project-theme.sh`     | Resolves a session's palette by walking up for `.tmux-theme`     |
 | `pane-status.sh`       | Resolves the pane-border chunk — worktree marker, branch, glyph  |
 | `claude-tool-label.sh` | Optional: shows the tool Claude Code is running (see below)      |
-| `docs/`                | The screenshot above, and the scripts that regenerate it         |
+| `docs/`                | The screenshot above, and [how it is generated](docs/README.md) |
 | `.gitignore`           | Excludes TPM's `plugins/`                                        |
 | `LICENSE`              | MIT — the terms this repo is published under                     |
 
@@ -177,29 +177,6 @@ ln -s ~/.tmux/claude-tool-label.sh ~/.claude/hooks/tmux_status.sh
 
 Pointing `settings.json` straight at `~/.tmux/claude-tool-label.sh` works just as well. The
 script needs `jq`, no-ops outside tmux, and skipping it entirely just means no tool label.
-
-## Regenerating the screenshot
-
-`docs/screenshot.sh` rebuilds `docs/screenshot.png` end to end: `docs/demo-setup.sh` creates a
-throwaway project, a linked worktree and the state files in a scratch directory and starts a
-tmux session for them on its **own server socket** (`-L tmuxdemo`), so it never touches the
-sessions you are working in; `docs/demo.tape` records that with [VHS](https://github.com/charmbracelet/vhs);
-`docs/window-chrome.py` adds the window frame and shadow. None of this is needed to *use* the
-config — only to regenerate the picture.
-
-| Needs                     |                                                                |
-| ------------------------- | -------------------------------------------------------------- |
-| `vhs`, `ttyd`             | Both ship static binaries — `~/.local/bin`, no root needed      |
-| `ffmpeg`, Chrome/Chromium | VHS drives a headless browser and encodes through ffmpeg        |
-| `uv`                      | `window-chrome.py` pulls Pillow in on demand via its shebang    |
-| a colour emoji font       | e.g. Noto Color Emoji, or the glyphs render as boxes            |
-
-The repo has to be checked out at `~/.tmux`, since `tmux.conf` refers to the scripts by that
-path. Two VHS quirks are worth knowing before editing `demo.tape`, because both fail
-*silently* with exit status 0: its lexer rejects some perfectly ordinary paths (`frames/`
-parses, `_frames/` does not — `vhs validate demo.tape` is the only way to see that), and frame
-output only materialises under `/tmp`, which is why `screenshot.sh` records in a `mktemp -d`
-rather than in the repo.
 
 ## How it works
 
