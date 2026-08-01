@@ -3,6 +3,22 @@
 Version-controlled tmux setup: a per-project colour scheme driven by files that live
 **in each project**, plus the pane-border status line.
 
+## What it does
+
+- **Per-project colours** — the status bar, window list and pane borders tint per project, so
+  several sessions side by side are distinguishable at a glance. The palette is declared by a
+  `.tmux-theme` file in the project itself; a project without one gets a neutral grey.
+- **Branch and worktree in the pane border** — each pane shows its index, its current git
+  branch, and a `🔀` when it sits in a *linked* worktree rather than the primary checkout.
+- **State glyphs a project publishes** — `🔒` holds the build lock, `⏳` waits for it, `⬇️` a
+  deploy is landing here. A project drops a file in its git dir; it never calls tmux.
+- **Mouse on** — click to focus a pane or window, drag a border to resize, wheel to scroll.
+- **Copies reach the machine you're sitting at** — `set-clipboard on` plus tmux-yank forward
+  yanks over OSC 52, so copying inside tmux on a remote box lands in the local pasteboard
+  with no `DISPLAY` or `xclip` in the path.
+- **Optional Claude Code tool label** — the tool Claude Code is running right now, shown at
+  the end of the border of the pane it's running in.
+
 The design goal is that this repo owns every *visual* decision, and a project only ever
 declares *data*. Nothing here hardcodes a list of projects, and no project needs to know
 how any of it is rendered.
