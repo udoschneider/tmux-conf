@@ -23,6 +23,8 @@ rather than captured — see [docs/](docs/README.md).</sub>
 - **State glyphs a project publishes** — `🔒` holds the build lock, `⏳` waits for it, `⬇️` a
   deploy is landing here. A project drops a file in its git dir; it never calls tmux.
 - **Mouse on** — click to focus a pane or window, drag a border to resize, wheel to scroll.
+- **Session name as the tab title** — `set-titles` pushes the session name as the terminal
+  window title, so iTerm shows one tab per session (see [iTerm tab title](#iterm-tab-title)).
 - **Copies reach the machine you're sitting at** — `set-clipboard on` plus tmux-yank forward
   yanks over OSC 52, so copying inside tmux on a remote box lands in the local pasteboard
   with no `DISPLAY` or `xclip` in the path.
@@ -193,6 +195,23 @@ the roles and assigns the style options imperatively.
 Four hooks re-apply on any event that can change which project a session shows. The two
 *creation* hooks pass `#{session_path}` explicitly, because when they fire the new pane has
 no shell yet and `#{pane_current_path}` reads back empty — or, worse, stale.
+
+## iTerm tab title
+
+`tmux.conf` sets `set-titles on` and `set-titles-string "#{session_name}"`, which makes tmux
+write its session name to the terminal as a title escape sequence (OSC 0). iTerm treats OSC 0
+as an update to the session's **Session Name**, so two profile settings gate whether it shows:
+
+1. **Settings → Profiles → your profile → General → "Applications in terminal may change the
+   title"** — enable it, otherwise iTerm ignores the OSC title tmux sends entirely.
+2. **Settings → Profiles → your profile → General → Title** — include **Session Name** in the
+   composition. The tab title is built from these checkbox elements; OSC 0 feeds Session Name.
+   If the tab shows `slogin`, that is the **Job** element (the ssh command), which is what
+   appears when Session Name is not in the title — untick Job, or order Session Name first.
+
+With both set, each iTerm tab reflects the tmux session it is attached to, and renames live
+when a session is renamed or you switch which session that tab is attached to. You must reload
+after adding the two tmux lines (`tmux source-file ~/.tmux.conf`) for the OSC title to start.
 
 ## Troubleshooting
 
