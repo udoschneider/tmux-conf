@@ -4,14 +4,15 @@ Version-controlled tmux setup: a per-project colour scheme driven by files that 
 **in each project**, plus the pane-border status line.
 
 ![A tmux session tinted by its project's palette. Each pane border carries its index and git
-branch; one pane is in a linked worktree and holds the build lock, another is landing a
-deploy, a third is waiting for the lock. The active pane's border also shows the tool Claude
-Code is running.](docs/screenshot.png)
+branch; one pane is in a linked worktree running the gate it holds the build lock for,
+another is landing a deploy, a third is queued for the build lock, a fourth is queued to
+land. The active pane's border also shows the tool Claude Code is running.](docs/screenshot.png)
 
 <sub>Everything at once, which no real session obliges you by doing: pane 1 sits in a linked
-worktree (`🔀`) holding the build lock (`🔒`), pane 2 is landing a deploy (`⬇️`), pane 3 is
-waiting for the lock (`⏳`), and pane 0 shows Claude Code's current tool. It is generated
-rather than captured — see [docs/](docs/README.md).</sub>
+worktree (`🔀`) running the gate it holds the build lock for (`⚙️`), pane 2 is landing a
+deploy (`⬇️`), pane 3 is queued for the build lock (`⏳`), pane 4 is queued to land (`🅿️`),
+and pane 0 shows Claude Code's current tool. It is generated rather than captured — see
+[docs/](docs/README.md).</sub>
 
 ## What it does
 
@@ -20,8 +21,10 @@ rather than captured — see [docs/](docs/README.md).</sub>
   `.tmux-theme` file in the project itself; a project without one gets a neutral grey.
 - **Branch and worktree in the pane border** — each pane shows its index, its current git
   branch, and a `🔀` when it sits in a *linked* worktree rather than the primary checkout.
-- **State glyphs a project publishes** — `🔒` holds the build lock, `⏳` waits for it, `⬇️` a
-  deploy is landing here. A project drops a file in its git dir; it never calls tmux.
+- **State glyphs a project publishes** — one grammar, two concerns: `⏳` queued for the build
+  lock and `⚙️` running under it, `🅿️` queued to land and `⬇️` landing. The pairs split by
+  *state*, not by concern — `⏳`/`🅿️` are stopped, `⚙️`/`⬇️` are working — so a glance reads
+  "is it moving?" first. A project drops a file in its git dir; it never calls tmux.
 - **Mouse on** — click to focus a pane or window, drag a border to resize, wheel to scroll.
 - **Session name as the tab title** — `set-titles` pushes the session name as the terminal
   window title, so iTerm shows one tab per session (see [iTerm tab title](#iterm-tab-title)).
@@ -115,13 +118,24 @@ namespace. It never calls tmux, and this repo never learns the project's name.
 
 ```
 $(git rev-parse --git-common-dir)/tmux-state/
-  <pane-id>.gate    # "wait <pid>"  -> ⏳     "hold <pid>"  -> 🔒
-  <pane-id>.land    # "<pid>"       -> ⬇️
+  <pane-id>.gate    # "wait <pid>"  -> ⏳     "hold <pid>"  -> ⚙️
+  <pane-id>.land    # "wait <pid>"  -> 🅿️    "hold <pid>"  -> ⬇️
 ```
 
 `<pane-id>` is `$TMUX_PANE`, which is an ordinary environment variable — reading it is not a
 tmux call, so a project stays entirely tmux-ignorant. `pane-status.sh` polls these files once
 per `status-interval` and renders at most one glyph, `gate` before `land`.
+
+**Both concerns share one grammar — `wait` is queued behind someone, `hold` is doing the
+thing.** That is what lets a reader learn the protocol once: the glyph pairs follow the
+*state* split rather than the concern, so `⏳`/`🅿️` both mean stopped and `⚙️`/`⬇️` both
+mean working.
+
+A `.land` file carrying an unrecognized token — including the bare `"<pid>"` that writers
+predating this grammar published — renders as `⬇️`. Adding the `wait` state was therefore
+backward compatible in both directions: `read_state` splits on the *last* space, so an old
+resolver reads a new two-token body's pid correctly, and a new resolver falls back for an old
+one-token body. No flag day was needed on either side.
 
 Two properties are worth understanding, because they are the reason for the shape:
 

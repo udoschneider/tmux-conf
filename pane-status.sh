@@ -13,8 +13,13 @@
 # STATE PROTOCOL — a project's only obligation (see README.md):
 #
 #   $(git rev-parse --git-common-dir)/tmux-state/
-#     <pane-id>.gate    "wait <pid>" | "hold <pid>"
-#     <pane-id>.land    "<pid>"
+#     <pane-id>.gate    "wait <pid>" | "hold <pid>"    ⏳ queued  / ⚙️ running
+#     <pane-id>.land    "wait <pid>" | "hold <pid>"    🅿️ queued / ⬇️ landing
+#
+# Both concerns share one grammar: `wait` is queued behind someone, `hold` is
+# doing the thing. The glyph pairs follow that split rather than the concern —
+# ⏳ and 🅿️ are both "stopped", ⚙️ and ⬇️ are both "working" — so a glance
+# reads the *state* first and the *concern* second.
 #
 # One file *per concern*, never a shared one. That is the whole point: each
 # writer creates and unlinks only its own file and never has to know another
@@ -84,7 +89,7 @@ if [ -f "$gate_file" ]; then
 	read_state "$gate_file"
 	if alive "$pid"; then
 		case "$token" in
-		hold) glyph="🔒" ;;
+		hold) glyph="⚙️" ;;
 		wait) glyph="⏳" ;;
 		esac
 	else
@@ -97,7 +102,14 @@ if [ -z "$glyph" ]; then
 	if [ -f "$land_file" ]; then
 		read_state "$land_file"
 		if alive "$pid"; then
-			glyph="⬇️"
+			case "$token" in
+			wait) glyph="🅿️" ;;
+			# `hold` — and anything unrecognized. A writer predating the
+			# wait/hold grammar publishes a bare "<pid>", which parses as
+			# token == pid; defaulting to the in-flight glyph keeps those
+			# readable instead of rendering silence at them.
+			*) glyph="⬇️" ;;
+			esac
 		else
 			rm -f "$land_file" 2>/dev/null
 		fi

@@ -2,7 +2,7 @@
 
 `screenshot.png` in this directory is the picture at the top of the [main README](../README.md).
 It is generated rather than captured, so it can show every indicator at once — a worktree
-marker, all three state glyphs and the Claude Code tool label — which no real session obliges
+marker, all four state glyphs and the Claude Code tool label — which no real session obliges
 you by doing on demand.
 
 **None of this is needed to use the config.** It is only needed to rebuild the picture.

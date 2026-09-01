@@ -78,14 +78,22 @@ p2=$(pane_script 2 \
 p3=$(pane_script 3 \
 	'$ ./scripts/build.sh' \
 	'… waiting for the build lock')
+p4=$(pane_script 4 \
+	'$ ./scripts/land.sh' \
+	'… queued behind another land')
 
 # --- the session ----------------------------------------------------------
 t() { tmux -L "$sock" "$@"; }
 
 t -f "$conf" new-session -d -s webapp -n edit -c "$main" -x 210 -y 52 "$p0"
 t split-window -h -t webapp:0.0 -l 44% -c "$wt" "$p1"
-t split-window -v -t webapp:0.1 -l 62% -c "$main" "$p2"
-t split-window -v -t webapp:0.2 -l 50% -c "$main" "$p3"
+# Each -l is a share of the pane being split, so the percentages fall as we go
+# down the column: 75/67/50 leaves four roughly equal panes. They need to stay
+# equal -- every one of them carries a state glyph in its border, and a pane
+# squeezed under ~4 rows clips its own body text out of the frame.
+t split-window -v -t webapp:0.1 -l 75% -c "$main" "$p2"
+t split-window -v -t webapp:0.2 -l 67% -c "$main" "$p3"
+t split-window -v -t webapp:0.3 -l 50% -c "$main" "$p4"
 t new-window -d -t webapp: -n logs -c "$main"
 t select-pane -t webapp:0.0
 
@@ -98,9 +106,11 @@ mkdir -p "$state"
 pane_id() { t display-message -p -t "webapp:0.$1" '#{pane_id}'; }
 pane_pid() { t display-message -p -t "webapp:0.$1" '#{pane_pid}'; }
 
-printf 'hold %s\n' "$(pane_pid 1)" >"$state/$(pane_id 1).gate" # 🔒 holds it
-printf '%s\n' "$(pane_pid 2)" >"$state/$(pane_id 2).land"      # ⬇️ deploying
-printf 'wait %s\n' "$(pane_pid 3)" >"$state/$(pane_id 3).gate" # ⏳ waiting
+# Both concerns, both states -- the complete vocabulary in one frame.
+printf 'hold %s\n' "$(pane_pid 1)" >"$state/$(pane_id 1).gate" # ⚙️ running the gate
+printf 'hold %s\n' "$(pane_pid 2)" >"$state/$(pane_id 2).land" # ⬇️ landing
+printf 'wait %s\n' "$(pane_pid 3)" >"$state/$(pane_id 3).gate" # ⏳ queued for the gate
+printf 'wait %s\n' "$(pane_pid 4)" >"$state/$(pane_id 4).land" # 🅿️ queued to land
 
 # The one pushed indicator: what Claude Code is running in pane 0.
 t set -p -t "$(pane_id 0)" @pane_cmd 'Edit(src/search.ts)'
